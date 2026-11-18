@@ -1,0 +1,17 @@
+/* Nodal 沙图振型：用于手碟。
+   设计 token 与组件覆盖，从 series-ui-design.html 抽出；前端引擎按 data-theme 切换。
+   --accent  = 正在发声 / 当前值；--accent2 = 有实测校准。舞台 canvas 通过 getComputedStyle 读取同一组变量。 */
+[data-theme="nodal"]{
+  --page:#1B2228;--page-ink:#E9E2D2;--page-dim:#8C969E;
+  --bg:#222A31;--panel:#29323A;--ink:#ECE5D5;--dim:#8A949C;--line:#3A454F;
+  --accent:#D6C49A;--accent2:#86AFC6;--key-w:#5A6670;--key-b:#1A2026;
+  --f-ui:"Segoe UI Variable Text","Segoe UI",system-ui,"Microsoft YaHei UI",sans-serif;
+  --f-disp:"Segoe UI Variable Display","Segoe UI",system-ui,"Microsoft YaHei UI",sans-serif;
+  --disp-w:300;--r:3px;--r-big:4px;
+}
+
+[data-theme="nodal"] .arts button[aria-pressed="true"]::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--accent);margin-left:-13px}
+[data-theme="nodal"] .arts button{padding-left:13px}
+[data-theme="nodal"] .rail{background:transparent}
+[data-theme="nodal"] .mark{letter-spacing:.32em;font-size:16px;color:var(--accent)}
+[data-theme="nodal"] .arts button[aria-pressed="false"]{color:var(--dim)}

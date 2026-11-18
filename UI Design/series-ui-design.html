@@ -1,0 +1,478 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>物理建模音源系列：前端视觉语言（定稿）</title>
+<style>
+/* ===== Theme tokens (each scheme = one block of variables) ===== */
+:root{color-scheme:light dark}
+body[data-theme="nodal"]{
+  --page:#1B2228;--page-ink:#E9E2D2;--page-dim:#8C969E;
+  --bg:#222A31;--panel:#29323A;--ink:#ECE5D5;--dim:#8A949C;--line:#3A454F;
+  --accent:#D6C49A;--accent2:#86AFC6;--key-w:#5A6670;--key-b:#1A2026;
+  --f-ui:"Segoe UI Variable Text","Segoe UI",system-ui,"Microsoft YaHei UI",sans-serif;
+  --f-disp:"Segoe UI Variable Display","Segoe UI",system-ui,"Microsoft YaHei UI",sans-serif;
+  --disp-w:300;--r:3px;--r-big:4px;
+}
+body[data-theme="calibre"]{
+  --page:#DDE1DF;--page-ink:#16191B;--page-dim:#5F676C;
+  --bg:#ECEEEC;--panel:#F7F8F7;--ink:#16191B;--dim:#6E767B;--line:#C3C9CC;
+  --accent:#F2B01E;--accent2:#2D63A8;--key-w:#FFFFFF;--key-b:#16191B;
+  --f-ui:"Bahnschrift","DIN Alternate","Arial Narrow","Microsoft YaHei UI",sans-serif;
+  --f-disp:"Bahnschrift","DIN Alternate","Arial Narrow","Microsoft YaHei UI",sans-serif;
+  --disp-w:600;--r:2px;--r-big:2px;
+}
+
+/* ===== Board (the page around the plugin) ===== */
+*{box-sizing:border-box}
+body{margin:0;background:var(--page);color:var(--page-ink);font:15px/1.6 "Segoe UI Variable Text","Segoe UI","Microsoft YaHei UI",system-ui,sans-serif;transition:background .3s}
+.board{max-width:1120px;margin:0 auto;padding:40px 28px 80px}
+.board h1{font-size:28px;font-weight:600;margin:0 0 6px;letter-spacing:.01em}
+.board .lede{max-width:72ch;color:var(--page-dim);margin:0 0 28px}
+.switch{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start;margin-bottom:20px}
+.switch fieldset{border:0;padding:0;margin:0}
+.switch legend{font-size:13px;color:var(--page-dim);margin-bottom:6px}
+.seg{display:flex;gap:4px;flex-wrap:wrap}
+.seg button{font:inherit;font-size:14px;color:var(--page-ink);background:transparent;border:1px solid color-mix(in srgb,var(--page-ink) 25%,transparent);padding:7px 14px;border-radius:6px;cursor:pointer;text-align:left}
+.seg button small{display:block;font-size:12px;color:var(--page-dim)}
+.seg button[aria-pressed="true"]{background:var(--page-ink);color:var(--page);border-color:var(--page-ink)}
+.seg button[aria-pressed="true"] small{color:color-mix(in srgb,var(--page) 75%,transparent)}
+.seg button:focus-visible,.plugin :focus-visible{outline:2px solid var(--accent2);outline-offset:2px}
+.hint{font-size:13px;color:var(--page-dim);margin:0 0 10px}
+.frame{width:100%;position:relative}
+.frame-inner{transform-origin:0 0;width:1000px;height:640px}
+.sheet{display:grid;grid-template-columns:1.1fr 1fr;gap:40px;margin-top:40px}
+.sheet h2{font-size:22px;margin:0 0 4px;font-weight:600}
+.sheet h3{font-size:15px;margin:26px 0 8px;font-weight:600}
+.sheet p{margin:0 0 12px;max-width:68ch}
+.sheet .tag{color:var(--page-dim);margin-bottom:14px}
+.swatches{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.sw{border-radius:6px;overflow:hidden;border:1px solid color-mix(in srgb,var(--page-ink) 15%,transparent);font-size:12px}
+.sw i{display:block;height:46px}
+.sw span{display:block;padding:6px 8px;background:rgba(255,255,255,.9);color:#1d2427}
+.sw b{font-weight:600}
+.spec{border-top:1px solid color-mix(in srgb,var(--page-ink) 20%,transparent);padding-top:12px}
+.spec .big{font-size:40px;line-height:1.1;margin:4px 0 8px}
+.spec .row{display:flex;justify-content:space-between;gap:12px;font-size:13px;color:var(--page-dim);border-bottom:1px solid color-mix(in srgb,var(--page-ink) 10%,transparent);padding:6px 0}
+.compare{margin-top:48px}
+.compare table{width:100%;border-collapse:collapse;font-size:14px}
+.compare th,.compare td{text-align:left;vertical-align:top;padding:10px 12px;border-bottom:1px solid color-mix(in srgb,var(--page-ink) 15%,transparent)}
+.compare th{font-weight:600;color:var(--page-dim);font-size:13px}
+.compare td:first-child{color:var(--page-dim);width:16%}
+
+/* ===== Plugin chrome (shared skeleton) ===== */
+.plugin{width:1000px;height:640px;background:var(--bg);color:var(--ink);font-family:var(--f-ui);font-size:13px;display:grid;grid-template-rows:60px 1fr 100px;grid-template-columns:250px 1fr 220px;overflow:hidden;border-radius:8px;box-shadow:0 20px 50px rgba(0,0,0,.28);user-select:none;position:relative}
+.p-head{grid-column:1/-1;display:flex;align-items:center;gap:18px;padding:0 20px;border-bottom:1px solid var(--line)}
+.mark{font-family:var(--f-disp);font-weight:var(--disp-w);font-size:20px;white-space:nowrap}
+.model{display:flex;flex-direction:column;line-height:1.25}
+.model small{color:var(--dim);font-size:11px}
+.model select{font:inherit;font-size:15px;color:var(--ink);background:transparent;border:0;padding:0;cursor:pointer;-webkit-appearance:none;appearance:none}
+.model select option{color:#111;background:#fff}
+.head-gap{flex:1}
+.preset{color:var(--dim)}
+.preset b{color:var(--ink);font-weight:500}
+.meter{width:110px;height:8px;background:var(--line);border-radius:var(--r);overflow:hidden;position:relative}
+.meter i{position:absolute;inset:0 auto 0 0;width:0;background:var(--accent)}
+.rail{padding:18px 20px;display:flex;flex-direction:column;gap:14px;background:var(--panel);overflow:hidden}
+.rail.left{border-right:1px solid var(--line)}
+.rail.right{border-left:1px solid var(--line)}
+.rail h4{margin:0;font-family:var(--f-disp);font-weight:var(--disp-w);font-size:17px}
+.rail h4 small{display:block;font-family:var(--f-ui);font-weight:400;font-size:11px;color:var(--dim)}
+.arts{display:flex;flex-direction:column;gap:2px}
+.arts button{font:inherit;color:var(--ink);background:transparent;border:0;text-align:left;padding:5px 8px;border-radius:var(--r);cursor:pointer;display:flex;gap:8px;align-items:center}
+.arts button .pc{color:var(--dim);font-size:11px;min-width:30px}
+.arts button[aria-pressed="true"]{color:var(--ink)}
+.ctl label{display:flex;justify-content:space-between;color:var(--dim);margin-bottom:4px}
+.ctl output{color:var(--ink);font-variant-numeric:tabular-nums}
+.ctl input{width:100%;margin:0;-webkit-appearance:none;appearance:none;background:transparent;height:20px;cursor:pointer}
+.ctl input::-webkit-slider-runnable-track{height:2px;background:linear-gradient(90deg,var(--accent) 0 calc(var(--v)*100%),var(--line) 0)}
+.ctl input::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:var(--accent);margin-top:-5px}
+.ctl input::-moz-range-track{height:2px;background:linear-gradient(90deg,var(--accent) 0 calc(var(--v)*100%),var(--line) 0)}
+.ctl input::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:var(--accent);border:0}
+.damp{font:inherit;color:var(--ink);background:transparent;border:1px solid var(--line);padding:8px;border-radius:var(--r);cursor:pointer;margin-top:auto}
+.damp:active{background:var(--accent);color:var(--bg)}
+.stage{position:relative}
+.stage canvas{position:absolute;inset:0;width:100%;height:100%;cursor:pointer;touch-action:none}
+.stage .cap{position:absolute;left:16px;top:10px;font-size:11px;color:var(--dim);pointer-events:none}
+.p-foot{grid-column:1/-1;border-top:1px solid var(--line);display:grid;grid-template-rows:1fr 24px;padding:10px 20px 6px}
+.keys{position:relative}
+.keys div{position:absolute;top:0;cursor:pointer}
+.keys .w{height:100%;background:var(--key-w);border:1px solid var(--bg);border-radius:0 0 3px 3px}
+.keys .b{height:58%;background:var(--key-b);z-index:2;border-radius:0 0 2px 2px}
+.keys .off{opacity:.28;cursor:default}
+.keys .cal::after{content:"";position:absolute;left:50%;bottom:6px;width:6px;height:6px;margin-left:-3px;border-radius:50%;background:var(--accent2)}
+.keys .on{background:var(--accent)!important}
+.status{display:flex;gap:22px;font-size:11px;color:var(--dim);align-items:center}
+.status b{font-weight:500;color:var(--ink)}
+.status .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent2);margin-right:5px;vertical-align:1px}
+
+/* --- Nodal specifics: quiet chrome, the sand on the stage is the voice --- */
+body[data-theme="nodal"] .arts button[aria-pressed="true"]::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--accent);margin-left:-13px}
+body[data-theme="nodal"] .arts button{padding-left:13px}
+body[data-theme="nodal"] .rail{background:transparent}
+body[data-theme="nodal"] .mark{letter-spacing:.32em;font-size:16px;color:var(--accent)}
+body[data-theme="nodal"] .arts button[aria-pressed="false"]{color:var(--dim)}
+
+/* --- Calibre specifics: every value is a reading --- */
+body[data-theme="calibre"] .plugin{border-radius:3px}
+body[data-theme="calibre"] .mark{font-stretch:75%;font-variation-settings:"wdth" 75;font-size:22px;letter-spacing:.02em}
+body[data-theme="calibre"] .rail h4{font-variation-settings:"wdth" 80;font-size:18px}
+body[data-theme="calibre"] .arts button{border-bottom:1px solid var(--line);border-radius:0;padding:5px 2px}
+body[data-theme="calibre"] .arts button[aria-pressed="true"]{background:var(--accent)}
+body[data-theme="calibre"] .ctl output{font-size:16px;font-variation-settings:"wdth" 80}
+body[data-theme="calibre"] .ctl input::-webkit-slider-runnable-track{height:12px;background:repeating-linear-gradient(90deg,var(--ink) 0 1px,transparent 1px 10%) 0 100%/100% 5px no-repeat,linear-gradient(90deg,var(--accent) 0 calc(var(--v)*100%),transparent 0) 0 0/100% 6px no-repeat}
+body[data-theme="calibre"] .ctl input::-webkit-slider-thumb{width:3px;height:18px;border-radius:0;background:var(--ink);margin-top:-3px}
+body[data-theme="calibre"] .ctl input::-moz-range-track{height:12px;background:repeating-linear-gradient(90deg,var(--ink) 0 1px,transparent 1px 10%) 0 100%/100% 5px no-repeat,linear-gradient(90deg,var(--accent) 0 calc(var(--v)*100%),transparent 0) 0 0/100% 6px no-repeat}
+body[data-theme="calibre"] .ctl input::-moz-range-thumb{width:3px;height:18px;border-radius:0;background:var(--ink);border:0}
+body[data-theme="calibre"] .meter{height:14px;border-radius:0;background:repeating-linear-gradient(90deg,var(--bg) 0 2px,transparent 2px 6px),var(--line)}
+body[data-theme="calibre"] .meter i{background:repeating-linear-gradient(90deg,var(--bg) 0 2px,transparent 2px 6px),var(--ink)}
+body[data-theme="calibre"] .damp{border:1.5px solid var(--ink);font-weight:600}
+
+@media (max-width:900px){.sheet{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body data-theme="nodal" data-inst="handpan">
+<div class="board">
+  <h1>物理建模音源系列：前端视觉语言</h1>
+  <p class="lede">定稿：手碟使用 Nodal，舌鼓使用 Calibre。两套方案共用同一个界面骨架和组件，只替换设计 token 与舞台绘制；切换乐器时主题自动跟随乐器族，也可以临时切到另一套预览。小提琴为跨乐器族验证用例，主题尚未分配。舞台和键盘可点击发声（浏览器内的简化合成，仅用于演示交互）。</p>
+
+  <div class="switch">
+    <fieldset><legend>视觉方案（临时预览）</legend><div class="seg" id="themeSeg">
+      <button data-v="nodal" aria-pressed="false">Nodal<small>沙图振型，深色</small></button>
+      <button data-v="calibre" aria-pressed="true">Calibre<small>测量仪表，数值可读</small></button>
+    </div></fieldset>
+    <fieldset><legend>乐器</legend><div class="seg" id="instSeg">
+      <button data-v="handpan" aria-pressed="true">手碟<small>定稿：Nodal</small></button>
+      <button data-v="tongue" aria-pressed="false">舌鼓<small>定稿：Calibre</small></button>
+      <button data-v="violin" aria-pressed="false">小提琴<small>未分配，仅作验证</small></button>
+    </div></fieldset>
+  </div>
+  <p class="hint" id="hint">点击音区、键盘或电脑键盘 A–L 试听；拖动小提琴的弓可以改变接触点。</p>
+
+  <div class="frame" id="frame"><div class="frame-inner" id="frameInner">
+    <div class="plugin" id="plugin">
+      <header class="p-head">
+        <div class="mark" id="mark">CALIBRE</div>
+        <div class="model"><small id="family">Handpan</small><select id="modelSel" aria-label="Instrument"></select></div>
+        <div class="head-gap"></div>
+        <div class="preset">Preset <b id="presetName">Init</b></div>
+        <div class="meter" aria-label="Output level"><i id="meter"></i></div>
+      </header>
+      <aside class="rail left" aria-label="Exciter">
+        <h4 id="exTitle">Exciter<small>How the instrument is played</small></h4>
+        <div class="arts" id="arts" role="group" aria-label="Articulation"></div>
+        <div id="exCtls"></div>
+      </aside>
+      <main class="stage" id="stageBox"><canvas id="stage" aria-label="Playable instrument surface"></canvas><div class="cap" id="cap"></div></main>
+      <aside class="rail right" aria-label="Body and space">
+        <h4>Body and space<small>What resonates after the strike</small></h4>
+        <div id="bodyCtls"></div>
+        <button class="damp" id="damp">Damp all</button>
+      </aside>
+      <footer class="p-foot">
+        <div class="keys" id="keys"></div>
+        <div class="status" id="status"></div>
+      </footer>
+    </div>
+  </div></div>
+
+  <section class="sheet" id="sheet"></section>
+
+  <section class="compare">
+    <h2 style="font-size:22px;margin:0 0 12px">乐器族与主题分配</h2>
+    <table>
+      <tr><th>乐器族</th><th>主题</th><th>舞台表现</th><th>实现要点</th></tr>
+      <tr><td>手碟</td><td>Nodal 沙图振型</td><td>音区内撒沙，敲击后颗粒聚到节线（节圆与直径）上，随衰减散开</td><td>颗粒渲染需稳定在 60 fps；节线目标点由各音区几何生成，与具体型号参数无关</td></tr>
+      <tr><td>舌鼓</td><td>Calibre 刻度仪表</td><td>技术图式的舌片轮廓，标注音名与频率；底部频谱条显示各分音衰减</td><td>舌片几何由 manifest 提供；频谱条只用发声事件中的分音频率与 T60，不传音频</td></tr>
+      <tr><td>其他乐器族</td><td>待定</td><td>两套均可用：Nodal 以颗粒表现驻波，Calibre 以读数和 Schelleng 等图表表现</td><td>新乐器只新增 manifest 与舞台模块，核心与主题不动</td></tr>
+    </table>
+  </section></section>
+</div>
+
+<script>
+/* ================= Instrument manifests =================
+   This mirrors what the C++ side would send to the web UI:
+   one manifest per model, controls grouped by role. */
+const NOTE=n=>["C","C#","D","Eb","E","F","F#","G","G#","A","Bb","B"][n%12]+(Math.floor(n/12)-1);
+const HZ=m=>440*Math.pow(2,(m-69)/12);
+const MANIFESTS={
+ handpan:{family:"Handpan",models:["Orvane","Gravik","Nuvora","Virel","Serevin","Somera"],
+  arts:["Fingerpad","Fingertip / Slap","Thumb","Knuckle","Muted","Soft mallet"],
+  exciter:[["position","Strike position",.25],["hardness","Contact hardness",.4]],
+  body:[["damping","Damping",.2],["coupling","Field coupling",.35],["room","Room",.25],["gain","Output",.6]],
+  notes:[50,57,58,60,62,64,65,69,72],calibrated:[62],range:[36,84]},
+ tongue:{family:"Tongue drum",models:["Tembrel"],
+  arts:["Finger","Thumb","Soft mallet","Hard mallet","Hands"],
+  exciter:[["position","Strike position",.3],["hardness","Mallet hardness",.5]],
+  body:[["damping","Damping",.15],["coupling","Tongue coupling",.2],["room","Room",.25],["gain","Output",.6]],
+  notes:[60,62,64,67,69,72,74,76],calibrated:[],range:[48,84]},
+ violin:{family:"Bowed string",models:["Violin - Concert","Violin - Baroque setup"],
+  arts:["Legato","Détaché","Spiccato","Pizzicato","Col legno"],
+  exciter:[["pressure","Bow force",.45],["speed","Bow speed",.5],["contact","Contact point",.35]],
+  body:[["bodyres","Body resonance",.6],["symp","Sympathetic strings",.3],["room","Room",.3],["gain","Output",.6]],
+  notes:null,strings:[55,62,69,76],calibrated:[],range:[55,96]}
+};
+
+/* ================= Themes (copy for the sheet) ================= */
+const THEMES={
+ nodal:{name:"Nodal",cn:"沙图振型",used:"手碟（Handpans 分组下所有型号）",series:"NODAL",tag:"深石板底，沙色颗粒。界面安静，只有舞台在动。",
+  idea:"物理建模的本质是振型。Nodal 借用克拉德尼沙图：舞台上每个音区撒着细沙，敲击后沙粒按该模式的节线聚拢，再随衰减散开。系列里的每件乐器都用同一种颗粒去显示它自己的振动：手碟是音区内的节圆，弦是驻波，管是空气柱的压强节点。控件尽量退后，标签和数字都比舞台暗一个层级。",
+  sw:[["Slate","#222A31","底色"],["Panel","#29323A","侧栏"],["Chalk","#ECE5D5","文字"],["Sand","#D6C49A","颗粒与主强调"],["Mode blue","#86AFC6","已校准/次强调"],["Line","#3A454F","分隔"]],
+  type:"Segoe UI Variable Display Light 做标题，Text 做控件。字重差就是层级，不靠颜色。",typeFont:"\"Segoe UI Variable Display\",\"Segoe UI\",sans-serif",typeW:300,
+  rules:"只有舞台允许动；控件不加发光和渐变。沙色只用于“正在发声”的东西：颗粒、当前奏法、电平。蓝色只表示“这里有实测校准”。"},
+ calibre:{name:"Calibre",cn:"刻度仪表",used:"舌鼓（Tembrel）",series:"CALIBRE",tag:"浅铝灰底，信号黄。每个控件都是一个读数。",
+  idea:"这个项目最独特的地方是“实测”：频率来自录音，误差有报告，校准过的音高会被标出。Calibre 把这种诚实做成视觉语言：舞台是一张带标注的技术图，音区旁写着音名和频率，敲击时底部频谱条显示各分音的衰减；小提琴舞台附带 Schelleng 图，显示当前弓压与接触点是否落在能产生亥姆霍兹运动的区域。字体全部用 Bahnschrift（DIN 系），用宽度轴区分标题和正文。",
+  sw:[["Aluminium","#ECEEEC","底色"],["Panel","#F7F8F7","侧栏"],["Ink","#16191B","文字/刻度"],["Signal","#F2B01E","当前值/发声"],["Calibrated","#2D63A8","实测校准标记"],["Rule","#C3C9CC","分隔"]],
+  type:"Bahnschrift 一族：SemiCondensed 做标题与读数，Regular 做标签。数字一律等宽对齐。",typeFont:"Bahnschrift,\"Arial Narrow\",sans-serif",typeW:600,
+  rules:"黄色只表示“当前值”和“正在发声”，蓝色只表示“有实测数据”。奏法列表显示 Program Change 编号，因为它就是宿主里的参数值。不出现无意义的装饰线，每条线都是刻度或分隔。"}
+};
+
+/* ================= State ================= */
+/* Final assignment: each instrument family carries its own theme. */
+const FAMILY_THEME={handpan:"nodal",tongue:"calibre"};
+let inst=document.body.dataset.inst||"handpan",theme=FAMILY_THEME[inst]||document.body.dataset.theme;document.body.dataset.theme=theme;
+const vals={};let art=0;
+const $=id=>document.getElementById(id);
+
+/* ================= Audio (demo synthesis) ================= */
+let AC,master,analyser,wet,dry,verb;
+function audio(){
+  if(AC)return AC;
+  AC=new (window.AudioContext||window.webkitAudioContext)();
+  master=AC.createGain();analyser=AC.createAnalyser();analyser.fftSize=1024;
+  dry=AC.createGain();wet=AC.createGain();verb=AC.createConvolver();
+  const len=AC.sampleRate*2.2,ir=AC.createBuffer(2,len,AC.sampleRate);
+  for(let c=0;c<2;c++){const d=ir.getChannelData(c);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,3.2);}
+  verb.buffer=ir;master.connect(dry);master.connect(verb);verb.connect(wet);
+  dry.connect(analyser);wet.connect(analyser);analyser.connect(AC.destination);setMix();return AC;
+}
+function setMix(){if(!AC)return;const r=vals.room??.25,g=vals.gain??.6;dry.gain.value=g*(1-r*.5);wet.gain.value=g*r*.9;}
+const voices=[];// for visualisation: {zone,f,parts:[[ratio,amp,t60]],t0}
+function strike(zone,f,vel){
+  const ac=audio(),t=ac.currentTime;const M=MANIFESTS[inst];
+  const h=vals.hardness??.4,p=vals.position??.25,d=vals.damping??.2;
+  let parts;
+  if(inst==="violin"){parts=[[1,1,1.6],[2,.5,1.1],[3,.33,.8],[4,.22,.6],[5,.15,.5]];}
+  else if(inst==="tongue"){parts=[[1,1,2.2],[2.02,.18+.3*h,1.0],[4.1,.08+.2*h,.4]];}
+  else parts=[[1,1,3.6],[2,.35+.5*p,2.2],[3,.12+.45*h,1.3],[4.9,.05+.25*h,.5]];
+  let k=1-.75*d;if(inst!=="violin"&&art===4)k*=.12;if(art===3&&inst==="handpan")k*=.6;
+  parts=parts.map(([r,a,T])=>[r,a,Math.max(.05,T*k)]);
+  const out=ac.createGain();out.gain.value=.22*vel;out.connect(master);
+  for(const [r,a,T] of parts){if(f*r>16000)continue;const o=ac.createOscillator(),g=ac.createGain();o.frequency.value=f*r;
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(a,t+.003+.01*(1-h));g.gain.exponentialRampToValueAtTime(1e-4,t+T);
+    o.connect(g);g.connect(out);o.start(t);o.stop(t+T+.05);}
+  const nl=Math.floor(ac.sampleRate*(.012+.03*(1-h))),nb=ac.createBuffer(1,nl,ac.sampleRate),nd=nb.getChannelData(0);
+  for(let i=0;i<nl;i++)nd[i]=(Math.random()*2-1)*(1-i/nl);
+  const ns=ac.createBufferSource(),bp=ac.createBiquadFilter(),ng=ac.createGain();ns.buffer=nb;bp.type="bandpass";bp.frequency.value=Math.min(9000,f*(3+8*h));bp.Q.value=1.2;
+  ng.gain.value=(art===1||art===3?.5:.18)*vel;ns.connect(bp);bp.connect(ng);ng.connect(master);ns.start(t);
+  voices.push({zone,f,parts,t0:performance.now()});if(voices.length>24)voices.shift();
+}
+let bow=null;
+function bowStart(si,f){
+  const ac=audio(),t=ac.currentTime;bowStop();
+  if(art===3||art===4){strike(si,f,.8);return;}
+  const P=vals.pressure??.45,S=vals.speed??.5,C=vals.contact??.35,B=vals.bodyres??.6;
+  const o=ac.createOscillator();o.type="sawtooth";o.frequency.value=f;
+  const lfo=ac.createOscillator(),lg=ac.createGain();lfo.frequency.value=5.4;lg.gain.setValueAtTime(0,t);lg.gain.linearRampToValueAtTime(f*.006,t+.5);lfo.connect(lg);lg.connect(o.frequency);
+  const lp=ac.createBiquadFilter();lp.type="lowpass";lp.frequency.value=1200+P*2600+(1-C)*1800;lp.Q.value=.7;
+  const b1=ac.createBiquadFilter();b1.type="peaking";b1.frequency.value=290;b1.gain.value=6*B;b1.Q.value=3;
+  const b2=ac.createBiquadFilter();b2.type="peaking";b2.frequency.value=2800;b2.gain.value=5*B;b2.Q.value=1.4;
+  const g=ac.createGain();g.gain.setValueAtTime(0,t);const peak=.07+.1*S;
+  const atk=art===2?.008:art===1?.03:.09;g.gain.linearRampToValueAtTime(peak,t+atk);
+  if(art===2)g.gain.exponentialRampToValueAtTime(1e-4,t+.18);
+  o.connect(lp);lp.connect(b1);b1.connect(b2);b2.connect(g);g.connect(master);o.start(t);lfo.start(t);
+  bow={o,lfo,g,si,f,t0:performance.now()};
+}
+function bowStop(){if(!bow)return;const t=AC.currentTime;bow.g.gain.cancelScheduledValues(t);bow.g.gain.setValueAtTime(bow.g.gain.value,t);bow.g.gain.linearRampToValueAtTime(0,t+.18);bow.o.stop(t+.25);bow.lfo.stop(t+.25);
+  voices.push({zone:bow.si,f:bow.f,parts:[[1,1,.6],[2,.5,.4],[3,.33,.3]],t0:performance.now()});bow=null;}
+function dampAll(){voices.length=0;if(AC){master.gain.cancelScheduledValues(AC.currentTime);master.gain.setValueAtTime(master.gain.value,AC.currentTime);master.gain.linearRampToValueAtTime(0,AC.currentTime+.04);master.gain.linearRampToValueAtTime(1,AC.currentTime+.5);}bowStop();}
+
+/* ================= Stage geometry ================= */
+const cv=$("stage"),cx=cv.getContext("2d");let W=530,H=480,DPR=1;
+let zones=[];
+function buildZones(){
+  zones=[];const M=MANIFESTS[inst];
+  if(inst==="handpan"){
+    const c=[W/2,H/2-14];const ang=[null,112,68,152,28,192,-12,232,308];const sz=[54,44,42,40,38,36,34,31,28];
+    M.notes.forEach((m,i)=>{let x=c[0],y=c[1],rot=0;if(i){const a=ang[i]*Math.PI/180;x+=Math.cos(a)*142;y+=Math.sin(a)*142;rot=a+Math.PI/2;}
+      zones.push({kind:"ell",x,y,rx:sz[i],ry:sz[i]*.8,rot,m});});
+  }else if(inst==="tongue"){
+    const c=[W/2,H/2-14];
+    M.notes.forEach((m,i)=>{const a=(-90+i*45+22.5*(i%2?0:0))*Math.PI/180;const L=118-i*7,w=40-i*1.6;
+      zones.push({kind:"tng",x:c[0]+Math.cos(a)*(198-L/2-4),y:c[1]+Math.sin(a)*(198-L/2-4),L,w,rot:a,m,cx:c[0],cy:c[1]});});
+  }else{
+    MANIFESTS.violin.strings.forEach((m,i)=>zones.push({kind:"str",x0:30,x1:430,y:176+i*44,m}));
+  }
+  zones.forEach(z=>{z.path=zonePath(z);z.env=0;z.t=0;z.T=1;});
+  makeParticles();
+}
+function zonePath(z){
+  const p=new Path2D();
+  if(z.kind==="ell")p.ellipse(z.x,z.y,z.rx,z.ry,z.rot,0,Math.PI*2);
+  else if(z.kind==="tng"){const m=new DOMMatrix().translateSelf(z.x,z.y).rotateSelf(z.rot*180/Math.PI);const q=new Path2D();
+    q.moveTo(z.L/2,-z.w/2);q.lineTo(-z.L/2+z.w/2,-z.w/2);q.arc(-z.L/2+z.w/2,0,z.w/2,-Math.PI/2,Math.PI/2,true);q.lineTo(z.L/2,z.w/2);q.closePath();p.addPath(q,m);}
+  else{p.rect(z.x0,z.y-9,z.x1-z.x0,18);}
+  return p;
+}
+let parts=[];
+function makeParticles(){
+  parts=[];
+  zones.forEach((z,zi)=>{
+    const n=z.kind==="str"?140:z.kind==="ell"?Math.round(z.rx*5):150;
+    for(let k=0;k<n;k++){
+      let hx,hy,tx,ty;
+      if(z.kind==="str"){const u=k/(n-1);hx=z.x0+u*(z.x1-z.x0);hy=z.y+(Math.random()-.5)*3;tx=hx;ty=z.y;parts.push({zi,hx,hy,tx,ty,u});continue;}
+      let tries=0;do{hx=z.x+(Math.random()-.5)*z.rx*2.2;hy=z.y+(Math.random()-.5)*z.rx*2.2;tries++;}while(!cx.isPointInPath(z.path,hx*DPR,hy*DPR)&&tries<60);
+      if(z.kind==="ell"){const a=Math.random()*Math.PI*2;if(k%3){tx=z.x+Math.cos(z.rot)*Math.cos(a)*z.rx*.58-Math.sin(z.rot)*Math.sin(a)*z.ry*.58;ty=z.y+Math.sin(z.rot)*Math.cos(a)*z.rx*.58+Math.cos(z.rot)*Math.sin(a)*z.ry*.58;}
+        else{const s=(Math.random()*2-1)*z.ry*.9;tx=z.x-Math.sin(z.rot)*s;ty=z.y+Math.cos(z.rot)*s;}}
+      else{const s=(Math.random()*2-1)*z.w*.45;const along=k%2?z.L*.12:(Math.random()-.5)*z.L*.9;const sa=k%2?s:0;
+        tx=z.x+Math.cos(z.rot)*along-Math.sin(z.rot)*sa;ty=z.y+Math.sin(z.rot)*along+Math.cos(z.rot)*sa;}
+      parts.push({zi,hx,hy,tx,ty});
+    }
+  });
+}
+function resizeStage(){const r=$("stageBox");W=r.clientWidth;H=r.clientHeight;DPR=Math.max(1,window.devicePixelRatio||1)*2;cv.width=W*DPR;cv.height=H*DPR;cx.setTransform(DPR,0,0,DPR,0,0);buildZones();}
+
+/* ================= Stage drawing ================= */
+function css(v){return getComputedStyle(document.body).getPropertyValue(v).trim();}
+function draw(now){
+  const C={bg:css("--bg"),ink:css("--ink"),dim:css("--dim"),line:css("--line"),a:css("--accent"),a2:css("--accent2"),panel:css("--panel")};
+  cx.clearRect(0,0,W,H);
+  zones.forEach(z=>{const age=(now-z.t)/1000;z.env=z.t?Math.exp(-6.9*age/z.T)*z.v:0;if(bow&&inst==="violin"&&zones.indexOf(z)===bow.si)z.env=Math.min(1,.4+(vals.speed??.5));});
+  const c=[W/2,H/2-14];const M=MANIFESTS[inst];
+  if(theme==="nodal"){
+    // shell: faint dotted outline only
+    cx.strokeStyle=C.line;cx.setLineDash([1,5]);cx.lineWidth=1.2;
+    if(inst!=="violin"){cx.beginPath();cx.arc(c[0],c[1],206,0,Math.PI*2);cx.stroke();}
+    else{cx.strokeRect(24,146,412,180);cx.beginPath();cx.moveTo(430,136);cx.lineTo(430,336);cx.stroke();}
+    cx.setLineDash([]);
+    zones.forEach(z=>{if(z.kind!=="str"){cx.strokeStyle=z.env>.02?C.a:C.line;cx.globalAlpha=.35+.65*z.env;cx.stroke(z.path);cx.globalAlpha=1;}});
+    for(const p of parts){const z=zones[p.zi];const e=Math.min(1,z.env*1.3);let x,y;
+      if(z.kind==="str"){const ph=(now/1000)*(6+p.zi*2);const amp=z.env*9*Math.sin(Math.PI*p.u);x=p.hx;y=z.y+amp*Math.sin(ph*3.1+p.u*0.6)*Math.cos(ph)+(p.hy-z.y)*(1-e);}
+      else{const j=(1-e)*0;x=p.hx+(p.tx-p.hx)*e+j;y=p.hy+(p.ty-p.hy)*e;}
+      cx.fillStyle=e>.05?C.a:C.dim;cx.globalAlpha=.55+.45*e;cx.fillRect(x-1,y-1,2,2);}
+    cx.globalAlpha=1;
+    if(inst==="violin")drawBow(C,"nodal");
+    labelsMinimal(C);
+  }else{ // calibre
+    cx.strokeStyle=C.line;cx.lineWidth=1;
+    // grid ticks
+    for(let x=0;x<W;x+=20){cx.beginPath();cx.moveTo(x+.5,0);cx.lineTo(x+.5,4);cx.stroke();}
+    for(let y=0;y<H;y+=20){cx.beginPath();cx.moveTo(0,y+.5);cx.lineTo(4,y+.5);cx.stroke();}
+    cx.strokeStyle=C.ink;cx.lineWidth=1.25;
+    if(inst!=="violin"){cx.beginPath();cx.arc(c[0],c[1],196,0,Math.PI*2);cx.stroke();cx.setLineDash([6,4]);cx.strokeStyle=C.dim;cx.beginPath();cx.moveTo(c[0]-214,c[1]);cx.lineTo(c[0]+214,c[1]);cx.moveTo(c[0],c[1]-214);cx.lineTo(c[0],c[1]+214);cx.lineWidth=.6;cx.stroke();cx.setLineDash([]);}
+    zones.forEach(z=>{
+      const cal=M.calibrated.includes(z.m);
+      if(z.kind!=="str"){if(z.env>.01){cx.fillStyle=C.a;cx.globalAlpha=.25+.75*z.env;cx.fill(z.path);cx.globalAlpha=1;}cx.strokeStyle=C.ink;cx.lineWidth=cal?2.2:1.1;cx.stroke(z.path);if(cal){cx.strokeStyle=C.a2;cx.lineWidth=1.2;cx.setLineDash([3,3]);cx.beginPath();cx.ellipse(z.x,z.y,(z.rx||20)+7,(z.ry||20)+7,z.rot||0,0,Math.PI*2);cx.stroke();cx.setLineDash([]);}}
+      else{cx.strokeStyle=C.ink;cx.lineWidth=2.2-zones.indexOf(z)*.35;cx.beginPath();const t=now/1000;for(let x=z.x0;x<=z.x1;x+=3){const u=(x-z.x0)/(z.x1-z.x0);const yy=z.y+Math.sin(Math.PI*u)*z.env*4*Math.sin(t*80);x===z.x0?cx.moveTo(x,yy):cx.lineTo(x,yy);}cx.stroke();}
+    });
+    // annotations
+    cx.font=`600 12px ${css("--f-ui")}`;cx.textAlign="center";cx.fillStyle=C.ink;
+    zones.forEach(z=>{if(z.kind==="str"){cx.textAlign="left";cx.fillText(NOTE(z.m),z.x1+16,z.y+4);cx.fillStyle=C.dim;cx.font=`400 11px ${css("--f-ui")}`;cx.fillText(HZ(z.m).toFixed(1)+" Hz",z.x1+42,z.y+4);cx.fillStyle=C.ink;cx.font=`600 12px ${css("--f-ui")}`;}
+      else{cx.fillText(NOTE(z.m),z.x,z.y);cx.font=`400 10px ${css("--f-ui")}`;cx.fillStyle=C.dim;cx.fillText(HZ(z.m).toFixed(1),z.x,z.y+13);cx.fillStyle=C.ink;cx.font=`600 12px ${css("--f-ui")}`;}});
+    if(inst==="violin"){cx.strokeStyle=C.ink;cx.lineWidth=1;cx.strokeRect(24,152,300,184);cx.lineWidth=3;cx.beginPath();cx.moveTo(430,146);cx.lineTo(430,342);cx.stroke();drawBow(C,"calibre");schelleng(C);}
+    else spectrum(C,now);
+  }
+  // meter
+  if(analyser){const b=new Float32Array(analyser.fftSize);analyser.getFloatTimeDomainData(b);let s=0;for(const v of b)s+=v*v;const db=20*Math.log10(Math.sqrt(s/b.length)+1e-6);$("meter").style.width=Math.max(0,Math.min(100,(db+60)/60*100))+"%";}
+  requestAnimationFrame(draw);
+}
+function rr(x,y,w,h,r){cx.beginPath();cx.roundRect?cx.roundRect(x,y,w,h,r):cx.rect(x,y,w,h);}
+function labelsMinimal(C){cx.font=`300 11px ${css("--f-ui")}`;cx.fillStyle=C.dim;cx.textAlign="center";zones.forEach(z=>{if(z.kind==="str"){cx.textAlign="left";cx.fillText(NOTE(z.m),z.x1+16,z.y+4);}else if(z.kind==="ell")cx.fillText(NOTE(z.m),z.x,z.y+z.ry+14);else cx.fillText(NOTE(z.m),z.x+Math.cos(z.rot)*(z.L/2+12),z.y+Math.sin(z.rot)*(z.L/2+12)+4);});}
+function bowX(){return 430-(.03+(vals.contact??.35)*.17)*400;}
+function drawBow(C,t){const x=bowX();
+  if(t==="nodal"){cx.strokeStyle=C.a;cx.globalAlpha=.8;cx.lineWidth=1;cx.beginPath();cx.moveTo(x,138);cx.lineTo(x,326);cx.stroke();cx.globalAlpha=1;}
+  else{cx.fillStyle=C.a;cx.fillRect(x-2,134,4,214);cx.fillStyle=C.ink;cx.font=`600 12px ${css("--f-ui")}`;cx.textAlign="center";cx.fillText("β "+(.03+(vals.contact??.35)*.17).toFixed(3),x,128);}}
+function schelleng(C){const x0=40,y0=372,w=250,h=88;const lo=-2.6,hi=.1;const c=Math.log10(.015);
+  const X=b=>x0+w*Math.log(b/.02)/Math.log(.25/.02),Y=lf=>y0+h*(hi-lf)/(hi-lo);
+  const fmax=b=>-(Math.log10(b)-c),fmin=b=>-2*(Math.log10(b)-c);
+  cx.save();cx.beginPath();cx.rect(x0,y0,w,h);cx.clip();cx.fillStyle="rgba(45,99,168,.15)";cx.beginPath();
+  for(let k=0;k<=20;k++){const b=.02*Math.pow(12.5,k/20);k?cx.lineTo(X(b),Y(fmax(b))):cx.moveTo(X(b),Y(fmax(b)));}
+  for(let k=20;k>=0;k--){const b=.02*Math.pow(12.5,k/20);cx.lineTo(X(b),Y(fmin(b)));}cx.closePath();cx.fill();cx.restore();
+  cx.strokeStyle=C.ink;cx.lineWidth=1;cx.strokeRect(x0,y0,w,h);
+  const b=.03+(vals.contact??.35)*.17,lf=lo+(vals.pressure??.45)*(hi-lo);const px=X(b),py=Y(lf);
+  const ok=lf<=fmax(b)&&lf>=fmin(b);
+  cx.fillStyle=ok?C.a:C.bg;cx.fillRect(px-4,py-4,8,8);cx.strokeStyle=C.ink;cx.strokeRect(px-4,py-4,8,8);
+  cx.fillStyle=C.dim;cx.font=`400 10px ${css("--f-ui")}`;cx.textAlign="left";cx.fillText("Schelleng diagram: bow force against contact point β (log-log)",x0,y0-7);
+  cx.fillText("raucous",x0+4,y0+12);cx.fillText("surface sound",x0+w-70,y0+h-6);
+  cx.fillStyle=C.ink;cx.font=`600 12px ${css("--f-ui")}`;cx.fillText(ok?"Helmholtz motion":(lf>fmax(b)?"Too much force":"Too little force"),x0+w+16,y0+16);
+  cx.fillStyle=C.dim;cx.font=`400 10px ${css("--f-ui")}`;cx.fillText("Stable sawtooth string motion",x0+w+16,y0+30);cx.fillText("between the two limits",x0+w+16,y0+43);}
+function spectrum(C,now){const x0=24,y0=H-56,w=W-48,h=40;cx.strokeStyle=C.line;cx.beginPath();cx.moveTo(x0,y0+h+.5);cx.lineTo(x0+w,y0+h+.5);cx.stroke();
+  const lx=f=>x0+w*Math.log(f/60)/Math.log(6000/60);cx.fillStyle=C.dim;cx.font=`400 10px ${css("--f-ui")}`;cx.textAlign="center";[100,200,500,1000,2000,5000].forEach(f=>{cx.fillText(f>=1000?f/1000+"k":f,lx(f),y0+h+12);});
+  for(const v of voices){const age=(now-v.t0)/1000;for(const [r,a,T] of v.parts){const amp=a*Math.exp(-6.9*age/T);if(amp<.01)continue;const x=lx(v.f*r);cx.fillStyle=C.ink;cx.fillRect(x-1,y0+h-amp*h,2.5,amp*h);}}}
+
+/* ================= Interaction ================= */
+function stagePt(e){const r=cv.getBoundingClientRect();return [(e.clientX-r.left)*W/r.width,(e.clientY-r.top)*H/r.height];}
+let dragBow=false;
+cv.addEventListener("pointerdown",e=>{const [x,y]=stagePt(e);cv.setPointerCapture(e.pointerId);
+  if(inst==="violin"){if(Math.abs(x-bowX())<12&&(y<160||y>320)){dragBow=true;return;}
+    const si=zones.findIndex(z=>Math.abs(y-z.y)<20&&x>z.x0&&x<z.x1+20);if(si<0)return;let m=zones[si].m;if(x<340)m+=Math.round((340-x)/26)>0?Math.round((340-x)/26):0;
+    const z=zones[si];z.t=performance.now();z.v=1;z.T=.8;bowStart(si,HZ(m));pressKey(m,true);bow.m=m;return;}
+  for(let i=zones.length-1;i>=0;i--){const z=zones[i];if(cx.isPointInPath(z.path,x*DPR,y*DPR)){hit(i,.55+.4*Math.min(1,Math.abs(e.pressure-.5)*2||.6));break;}}});
+cv.addEventListener("pointermove",e=>{if(!dragBow)return;const [x]=stagePt(e);setVal("contact",Math.max(0,Math.min(1,((430-x)/400-.03)/.17)));});
+window.addEventListener("pointerup",()=>{dragBow=false;if(bow){pressKey(bow.m,false);zones[bow.si].t=performance.now();zones[bow.si].T=.5;bowStop();}});
+function hit(i,vel){const z=zones[i];z.t=performance.now();z.v=vel;z.T=(inst==="handpan"?3:2)*(1-.75*(vals.damping??.2))*(art===4?.15:1);strike(i,HZ(z.m),vel);flashKey(z.m);}
+function playMidi(m){if(inst==="violin"){let si=0;MANIFESTS.violin.strings.forEach((s,i)=>{if(m>=s)si=i;});const z=zones[si];z.t=performance.now();z.v=1;z.T=.8;bowStart(si,HZ(m));bow&&(bow.m=m);pressKey(m,true);return;}
+  const i=zones.findIndex(z=>z.m===m);if(i>=0)hit(i,.75);}
+
+/* ================= Controls ================= */
+function setVal(k,v){vals[k]=v;const el=document.querySelector(`[data-key="${k}"]`);if(el){const inp=el.querySelector("input");inp.value=v;inp.style.setProperty("--v",v);el.querySelector("output").textContent=fmt(k,v);}setMix();}
+function fmt(k,v){if(k==="contact")return "β "+(.03+v*.17).toFixed(3);if(k==="gain")return (20*Math.log10(Math.max(v,.001)/.6)).toFixed(1)+" dB";if(k==="room")return Math.round(v*100)+"%";return v.toFixed(2);}
+function ctl(host,[k,label,def]){if(vals[k]===undefined)vals[k]=def;const d=document.createElement("div");d.className="ctl";d.dataset.key=k;
+  d.innerHTML=`<label for="c_${k}">${label}<output></output></label><input id="c_${k}" type="range" min="0" max="1" step="0.01">`;host.appendChild(d);
+  const inp=d.querySelector("input");inp.addEventListener("input",()=>setVal(k,+inp.value));setVal(k,vals[k]);}
+function renderPlugin(){
+  const M=MANIFESTS[inst],T=THEMES[theme];
+  $("mark").textContent=T.series;$("family").textContent=M.family;
+  $("modelSel").innerHTML=M.models.map(m=>`<option>${m}</option>`).join("");
+  art=Math.min(art,M.arts.length-1);
+  $("arts").innerHTML=M.arts.map((a,i)=>`<button aria-pressed="${i===art}" data-i="${i}"><span class="pc">PC ${i}</span>${a}</button>`).join("");
+  $("arts").querySelectorAll("button").forEach(b=>b.onclick=()=>{art=+b.dataset.i;$("arts").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b));});
+  $("exCtls").innerHTML="";$("bodyCtls").innerHTML="";
+  const ex=document.createElement("div");ex.style.cssText="display:flex;flex-direction:column;gap:12px;margin-top:6px";$("exCtls").appendChild(ex);M.exciter.forEach(c=>ctl(ex,c));
+  const bo=document.createElement("div");bo.style.cssText="display:flex;flex-direction:column;gap:12px";$("bodyCtls").appendChild(bo);M.body.forEach(c=>ctl(bo,c));
+  $("exTitle").innerHTML=inst==="violin"?"Exciter<small>Bow and contact</small>":"Exciter<small>Hand, mallet and contact</small>";
+  $("cap").textContent=inst==="violin"?"Hold a string to bow, drag the bow to move the contact point":"Click a note field to strike";
+  renderKeys();
+  const cal=M.calibrated.length;
+  $("status").innerHTML=(cal?`<span><span class="dot"></span><b>${cal} calibrated</b> from recordings</span>`:`<span>Model uses acoustic priors, not yet calibrated</span>`)+`<span>Playable <b>${M.notes?M.notes.length+" notes":NOTE(M.range[0])+" to "+NOTE(M.range[1])}</b></span><span>Latency <b>16 samples</b></span><span>48 kHz</span>`;
+  resizeStage();
+}
+function renderKeys(){const M=MANIFESTS[inst],k=$("keys");k.innerHTML="";const [lo,hi]=M.range;const isB=n=>[1,3,6,8,10].includes(n%12);
+  let whites=0;for(let n=lo;n<=hi;n++)if(!isB(n))whites++;const ww=(k.clientWidth||960)/whites;let wi=0;
+  for(let n=lo;n<=hi;n++){const d=document.createElement("div");d.dataset.m=n;const ok=M.notes?M.notes.includes(n):n>=M.range[0];
+    if(isB(n)){d.className="b";d.style.left=(wi*ww-ww*.3)+"px";d.style.width=ww*.6+"px";}else{d.className="w";d.style.left=wi*ww+"px";d.style.width=ww+"px";wi++;}
+    if(!ok)d.classList.add("off");if(M.calibrated.includes(n))d.classList.add("cal");
+    d.title=NOTE(n)+(ok?"":" (not available)");
+    if(ok){d.onpointerdown=e=>{e.preventDefault();playMidi(n);};}
+    k.appendChild(d);}}
+function keyEl(m){return $("keys").querySelector(`[data-m="${m}"]`);}
+function flashKey(m){const e=keyEl(m);if(!e)return;e.classList.add("on");setTimeout(()=>e.classList.remove("on"),160);}
+function pressKey(m,on){const e=keyEl(m);if(e)e.classList.toggle("on",on);}
+$("damp").onclick=dampAll;
+
+/* ================= Design sheet ================= */
+function renderSheet(){const T=THEMES[theme];
+  $("sheet").innerHTML=`<div><h2>${T.name}：${T.cn}</h2><p class="tag">用于：${T.used}</p><p class="tag">${T.tag}</p><p>${T.idea}</p><h3>规则</h3><p>${T.rules}</p></div>
+  <div><h3 style="margin-top:0">色板</h3><div class="swatches">${T.sw.map(([n,h,r])=>`<div class="sw"><i style="background:${h}"></i><span><b>${n}</b> ${h}<br>${r}</span></div>`).join("")}</div>
+  <h3>字体</h3><div class="spec"><div class="big" style="font-family:${T.typeFont};font-weight:${T.typeW};">${T.series} Handpan</div>
+  <p style="font-size:13px">${T.type}</p>
+  <div class="row"><span>系列名 / 区块标题</span><span>20 / 17 px</span></div><div class="row"><span>控件标签</span><span>13 px</span></div><div class="row"><span>状态栏、单位</span><span>11 px</span></div></div></div>`;}
+
+/* ================= Switching & scaling ================= */
+function seg(id,cb){$(id).querySelectorAll("button").forEach(b=>b.onclick=()=>{$(id).querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b));cb(b.dataset.v);});}
+seg("themeSeg",v=>{theme=v;document.body.dataset.theme=v;renderPlugin();renderSheet();});
+function applyTheme(v){theme=v;document.body.dataset.theme=v;document.querySelectorAll("#themeSeg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.v===v));renderSheet();}
+seg("instSeg",v=>{dampAll();inst=v;art=0;if(FAMILY_THEME[v])applyTheme(FAMILY_THEME[v]);renderPlugin();});
+function fit(){const w=$("frame").clientWidth,s=Math.min(1,w/1000);$("frameInner").style.transform=`scale(${s})`;$("frame").style.height=640*s+"px";}
+window.addEventListener("resize",fit);
+const KB="asdfghjkl";window.addEventListener("keydown",e=>{if(e.repeat||e.target.tagName==="INPUT"||e.target.tagName==="SELECT")return;const i=KB.indexOf(e.key.toLowerCase());if(i<0)return;
+  if(inst==="violin"){playMidi([55,57,59,60,62,64,66,67,69][i]);}else if(zones[i])hit(i,.75);});
+window.addEventListener("keyup",e=>{if(inst==="violin"&&KB.includes(e.key.toLowerCase())&&bow){pressKey(bow.m,false);bowStop();}});
+document.querySelectorAll("#themeSeg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.v===theme));document.querySelectorAll("#instSeg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.v===inst));
+fit();renderPlugin();renderSheet();requestAnimationFrame(draw);
+</script>
+</body>
+</html>

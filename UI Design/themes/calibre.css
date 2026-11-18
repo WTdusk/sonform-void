@@ -1,0 +1,25 @@
+/* Calibre 刻度仪表：用于舌鼓。
+   设计 token 与组件覆盖，从 series-ui-design.html 抽出；前端引擎按 data-theme 切换。
+   --accent  = 正在发声 / 当前值；--accent2 = 有实测校准。舞台 canvas 通过 getComputedStyle 读取同一组变量。 */
+[data-theme="calibre"]{
+  --page:#DDE1DF;--page-ink:#16191B;--page-dim:#5F676C;
+  --bg:#ECEEEC;--panel:#F7F8F7;--ink:#16191B;--dim:#6E767B;--line:#C3C9CC;
+  --accent:#F2B01E;--accent2:#2D63A8;--key-w:#FFFFFF;--key-b:#16191B;
+  --f-ui:"Bahnschrift","DIN Alternate","Arial Narrow","Microsoft YaHei UI",sans-serif;
+  --f-disp:"Bahnschrift","DIN Alternate","Arial Narrow","Microsoft YaHei UI",sans-serif;
+  --disp-w:600;--r:2px;--r-big:2px;
+}
+
+[data-theme="calibre"] .plugin{border-radius:3px}
+[data-theme="calibre"] .mark{font-stretch:75%;font-variation-settings:"wdth" 75;font-size:22px;letter-spacing:.02em}
+[data-theme="calibre"] .rail h4{font-variation-settings:"wdth" 80;font-size:18px}
+[data-theme="calibre"] .arts button{border-bottom:1px solid var(--line);border-radius:0;padding:5px 2px}
+[data-theme="calibre"] .arts button[aria-pressed="true"]{background:var(--accent)}
+[data-theme="calibre"] .ctl output{font-size:16px;font-variation-settings:"wdth" 80}
+[data-theme="calibre"] .ctl input::-webkit-slider-runnable-track{height:12px;background:repeating-linear-gradient(90deg,var(--ink) 0 1px,transparent 1px 10%) 0 100%/100% 5px no-repeat,linear-gradient(90deg,var(--accent) 0 calc(var(--v)*100%),transparent 0) 0 0/100% 6px no-repeat}
+[data-theme="calibre"] .ctl input::-webkit-slider-thumb{width:3px;height:18px;border-radius:0;background:var(--ink);margin-top:-3px}
+[data-theme="calibre"] .ctl input::-moz-range-track{height:12px;background:repeating-linear-gradient(90deg,var(--ink) 0 1px,transparent 1px 10%) 0 100%/100% 5px no-repeat,linear-gradient(90deg,var(--accent) 0 calc(var(--v)*100%),transparent 0) 0 0/100% 6px no-repeat}
+[data-theme="calibre"] .ctl input::-moz-range-thumb{width:3px;height:18px;border-radius:0;background:var(--ink);border:0}
+[data-theme="calibre"] .meter{height:14px;border-radius:0;background:repeating-linear-gradient(90deg,var(--bg) 0 2px,transparent 2px 6px),var(--line)}
+[data-theme="calibre"] .meter i{background:repeating-linear-gradient(90deg,var(--bg) 0 2px,transparent 2px 6px),var(--ink)}
+[data-theme="calibre"] .damp{border:1.5px solid var(--ink);font-weight:600}

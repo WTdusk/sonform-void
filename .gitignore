@@ -1,0 +1,18 @@
+# Local IDE state and OS metadata
+.vs/
+CMakeUserPresets.json
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Generated SONFORM builds and release artifacts
+/Hand Pan Modeling/build/
+/Hand Pan Modeling/build-*/
+/Hand Pan Modeling/dist/
+
+# Upstream JUCE examples and optional tools unrelated to the SONFORM build
+/JUCE-9.0.2/.github/
+/JUCE-9.0.2/docs/
+/JUCE-9.0.2/examples/
+/JUCE-9.0.2/extras/*
+!/JUCE-9.0.2/extras/Build/
